@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Socratic Co-Pilot: Handwriting Scanner</title>
-   <style>
+    <title>Socratic Co-Pilot | OnlineSuperTutors</title>
+    <style>
         :root {
             --primary: #2c3e50;
             --accent: #3498db;
@@ -34,7 +34,6 @@
         .header p { color: #666; margin: 0; font-size: 16px; }
         .upload-section { text-align: center; margin-bottom: 20px; }
         
-        /* NEW: The Dropdown Styling */
         .subject-dropdown {
             width: 100%;
             padding: 12px;
@@ -89,7 +88,10 @@
         <div class="upload-section">
             <select id="subject-selector" class="subject-dropdown">
                 <option value="english">English (Lit/Lang)</option>
-                <option value="maths">Mathematics (STEM)</option>
+                <option value="maths">Mathematics & STEM</option>
+                <option value="mfl">French, Spanish, or German</option>
+                <option value="mandarin">Mandarin Chinese</option>
+                <option value="arabic">Arabic</option>
             </select>
 
             <label class="upload-btn">
@@ -110,7 +112,7 @@
         const statusText = document.getElementById('status-text');
         const outputArea = document.getElementById('extracted-text');
         const spinner = document.getElementById('loading-spinner');
-        const subjectSelector = document.getElementById('subject-selector'); // NEW
+        const subjectSelector = document.getElementById('subject-selector');
 
         uploader.addEventListener('change', async function(e) {
             const file = e.target.files[0];
@@ -125,12 +127,10 @@
 
             const formData = new FormData();
             formData.append('handwritingImage', file);
-            // NEW: Send the selected subject to your server
             formData.append('subject', subjectSelector.value); 
 
             try {
-                // IMPORTANT: Ensure this points to your Render URL, not localhost!
-                const response = await fetch('https://YOUR_RENDER_URL_HERE/api/analyze', {
+                const response = await fetch('https://socratic-api.onrender.com/api/analyze', {
                     method: 'POST',
                     body: formData
                 });
@@ -150,64 +150,6 @@
                 console.error(err);
                 spinner.style.display = 'none';
                 statusText.innerText = "Failed to connect to the server.";
-            }
-        });
-    </script>
-</body>
-
-    <h2>The Socratic Co-Pilot 🪶</h2>
-    <p>Upload or snap a photo of your handwritten draft.</p>
-
-    <div class="upload-btn-wrapper">
-        <button class="btn">Take Photo or Upload</button>
-        <input type="file" id="file-uploader" accept="image/*" capture="environment" />
-    </div>
-
-    <img id="image-preview" alt="Preview of uploaded work" />
-    <div id="status-text"></div>
-    <textarea id="extracted-text" placeholder="Your Socratic feedback will appear here..."></textarea>
-
-    <script>
-        const uploader = document.getElementById('file-uploader');
-        const preview = document.getElementById('image-preview');
-        const statusText = document.getElementById('status-text');
-        const outputArea = document.getElementById('extracted-text');
-
-        uploader.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // 1. Show image preview instantly
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-
-            // 2. Update status
-            statusText.innerText = "Sending to the Socratic Brain... Please wait.";
-            outputArea.value = ""; 
-
-            // 3. Package the image to send to your new Back-End
-            const formData = new FormData();
-            formData.append('handwritingImage', file);
-
-            try {
-                // 4. The Knock on the Door: Send it to your local server
-                const response = await fetch('https://socratic-api.onrender.com/api/analyze', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                // 5. Display the brilliant Socratic feedback!
-                if (response.ok) {
-                    statusText.innerText = "Feedback received! Check below.";
-                    outputArea.value = data.feedback;
-                } else {
-                    statusText.innerText = "Error: " + data.error;
-                }
-            } catch (err) {
-                console.error(err);
-                statusText.innerText = "Failed to connect. Is your Node.js server running in the terminal?";
             }
         });
     </script>
