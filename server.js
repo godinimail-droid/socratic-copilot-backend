@@ -204,7 +204,83 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
         res.status(500).json({ error: 'The Socratic Co-Pilot encountered a glitch in the matrix.' });
     }
 });
+// =====================================================================
+// APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE)
+// =====================================================================
 
+const EASY_APPLY_SYSTEM_PROMPT = `
+You are an elite, empathetic executive career coach and CV writer. Your goal is to empower older professionals (50+) by taking their raw, unstructured career history and transforming it into a modern, ATS-friendly (Applicant Tracking System) CV.
+
+The user will provide you with either a raw voice transcript, a messy text brain-dump, or text extracted from a photograph of an outdated paper CV. 
+
+Your job is to read between the lines, identify their highly valuable transferable skills, and structure their experience using modern professional terminology. 
+
+DO NOT patronize the user. Do not invent fake jobs or fake metrics. ONLY use the information provided, but elevate the language.
+
+Format the output in clean, professional Markdown using the following structure:
+
+## Professional Summary
+[Write a powerful, 3-4 sentence paragraph highlighting their decades of reliability, their core competencies, and their value as a seasoned professional.]
+
+---
+## Key Transferable Skills
+[Extract 6-8 key skills from their input. Group them logically, e.g., Team Leadership, Operational Logistics, Crisis Management, etc. Use bullet points.]
+
+---
+## Professional Experience
+[Structure whatever job history they gave you. If they didn't provide dates, just use the job titles and companies. For each role, write 2-3 strong bullet points using action verbs (e.g., "Managed," "Spearheaded," "Optimized").]
+
+---
+## 💡 Career Coach Note
+[Add a final, short, encouraging note directly addressing the user. Tell them 1 specific strength you noticed in their background and give them a quick boost of confidence for their job hunt.]
+`;
+
+app.post('/api/build-cv', upload.single('image'), async (req, res) => {
+    try {
+        const mode = req.body.mode; // 'photo', 'voice', or 'text'
+        let userContent = "";
+
+        // Determine how to feed the Gemini AI based on the "Door" they chose
+        if (mode === 'text' || mode === 'voice') {
+            userContent = req.body.text;
+            if (!userContent) {
+                return res.status(400).json({ error: 'No text or audio transcript provided.' });
+            }
+        } else if (mode === 'photo') {
+            if (!req.file) {
+                return res.status(400).json({ error: 'No image uploaded.' });
+            }
+            // For photos, we pass the image data directly to Gemini Vision
+            userContent = {
+                inlineData: {
+                    data: req.file.buffer.toString("base64"),
+                    mimeType: req.file.mimetype
+                }
+            };
+        } else {
+            return res.status(400).json({ error: 'Invalid input mode.' });
+        }
+
+        // Call the Gemini API with the Career Coach prompt
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" }); 
+        
+        // Pass both the system prompt and the user's messy input
+        const result = await model.generateContent([
+            EASY_APPLY_SYSTEM_PROMPT, 
+            "Here is the user's raw career history input:\n\n",
+            userContent
+        ]);
+        
+        const response = await result.response;
+        const cvText = response.text();
+
+        res.json({ feedback: cvText });
+
+    } catch (error) {
+        console.error('Error in Easy Apply CV generation:', error);
+        res.status(500).json({ error: 'Failed to generate CV. Please try again.' });
+    }
+});
 app.listen(port, () => {
     console.log(`🚀 Multi-Subject Socratic Server running securely on port ${port}`);
 });
