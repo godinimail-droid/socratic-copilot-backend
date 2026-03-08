@@ -76,16 +76,14 @@
             line-height: 1.6; display: none; color: #2c3e50;
         }
         
-        /* UPDATED: Heading and Subtext Styling */
         .output-box h3 { 
             color: var(--primary); 
             margin-top: 25px; 
             margin-bottom: 5px;
             border-bottom: 2px solid #e0e0e0; 
             padding-bottom: 5px; 
-            font-size: 1.25rem; /* Shrunk down to be less overwhelming */
+            font-size: 1.25rem; 
         }
-        /* Targets the italicized explanatory text directly under the heading */
         .output-box h3 + p em {
             color: #636e72;
             font-size: 0.95rem;
@@ -155,6 +153,10 @@
     </div>
 
     <script>
+        // === BRANDING URL INSERTED HERE ===
+        const OST_LOGO_URL = "https://onlinesupertutors.org/wp-content/uploads/2026/03/OST-Logo-2022-LONG-CROPPED-Copy.avif"; 
+        // ==================================
+
         const uploader = document.getElementById('file-uploader');
         const preview = document.getElementById('image-preview');
         const statusText = document.getElementById('status-text');
@@ -206,7 +208,14 @@
 
                 if (response.ok) {
                     statusText.innerText = "Analysis Complete.";
-                    outputArea.innerHTML = marked.parse(data.feedback);
+                    
+                    const brandingHtml = `
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <img src="${OST_LOGO_URL}" alt="Online Super Tutors" style="max-height: 55px; width: auto;">
+                        </div>
+                    `;
+                    
+                    outputArea.innerHTML = brandingHtml + marked.parse(data.feedback);
                     outputArea.style.display = 'block';
                     actionsContainer.style.display = 'flex'; 
                 } else {
@@ -223,9 +232,8 @@
             const element = document.getElementById('pdf-content-area');
             const opt = {
                 margin:       0.5,
-                filename:     'Socratic_Feedback_Report.pdf',
+                filename:     'OST_Socratic_Feedback_Report.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                // NEW: scrollY: 0 forces the capture to start at the absolute top, fixing the blank page bug!
                 html2canvas:  { scale: 2, scrollY: 0 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
