@@ -16,7 +16,7 @@
             --bg: #f4f7f6;
             --text: #333;
             --success: #27ae60;
-            --cta-bg: #e67e22; /* Custom color for your high-intent call button */
+            --cta-bg: #e67e22; 
         }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -75,13 +75,27 @@
             padding: 25px; border-radius: 0 12px 12px 0; font-size: 15px;
             line-height: 1.6; display: none; color: #2c3e50;
         }
-        .output-box h3 { color: var(--primary); margin-top: 25px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; }
+        
+        /* UPDATED: Heading and Subtext Styling */
+        .output-box h3 { 
+            color: var(--primary); 
+            margin-top: 25px; 
+            margin-bottom: 5px;
+            border-bottom: 2px solid #e0e0e0; 
+            padding-bottom: 5px; 
+            font-size: 1.25rem; /* Shrunk down to be less overwhelming */
+        }
+        /* Targets the italicized explanatory text directly under the heading */
+        .output-box h3 + p em {
+            color: #636e72;
+            font-size: 0.95rem;
+            display: block;
+            margin-bottom: 15px;
+        }
         .output-box hr { border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0; }
         .output-box strong { color: var(--accent); }
         
-        /* Actions container for buttons after analysis is complete */
         .actions-container {
-            display: none; /* Hidden until analysis success */
             margin-top: 30px;
             display: flex;
             flex-direction: column;
@@ -96,8 +110,6 @@
 
         .pdf-btn { background-color: var(--success); color: white; }
         .pdf-btn:hover { background-color: #2ecc71; }
-
-        /* The New Click-to-Call CTA */
         .call-btn { background-color: var(--cta-bg); color: white; }
         .call-btn:hover { background-color: #f39c12; }
         
@@ -136,9 +148,8 @@
             <div class="output-box" id="extracted-text"></div>
         </div>
 
-        <div class="actions-container" id="post-analysis-actions">
+        <div class="actions-container" id="post-analysis-actions" style="display: none;">
             <button id="download-pdf-btn" class="action-btn pdf-btn">📥 Download PDF Report</button>
-            
             <a href="tel:+08008611751" class="action-btn call-btn">📞 Discuss These Results with a Specialist</a>
         </div>
     </div>
@@ -151,20 +162,18 @@
         const spinner = document.getElementById('loading-spinner');
         const subjectSelector = document.getElementById('subject-selector');
         const pdfBtn = document.getElementById('download-pdf-btn');
-        const actionsContainer = document.getElementById('post-analysis-actions'); // NEW
+        const actionsContainer = document.getElementById('post-analysis-actions');
 
         uploader.addEventListener('change', async function(e) {
             let file = e.target.files[0];
             if (!file) return;
 
-            // UI Reset
             outputArea.style.display = 'none';
-            actionsContainer.style.display = 'none'; // Hidden on retry
+            actionsContainer.style.display = 'none'; 
             spinner.style.display = 'block';
             statusText.innerText = "Waking up cloud servers & analyzing... (This may take up to 60s)";
             outputArea.innerHTML = ""; 
 
-            // HEIC Conversion Magic
             if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
                 statusText.innerText = "Converting Apple HEIC format...";
                 try {
@@ -187,7 +196,6 @@
             formData.append('subject', subjectSelector.value); 
 
             try {
-                // Ensure this points to your live Render URL, not localhost!
                 const response = await fetch('https://socratic-api.onrender.com/api/analyze', {
                     method: 'POST',
                     body: formData
@@ -200,7 +208,7 @@
                     statusText.innerText = "Analysis Complete.";
                     outputArea.innerHTML = marked.parse(data.feedback);
                     outputArea.style.display = 'block';
-                    actionsContainer.style.display = 'flex'; // Show actions container (PDF & Call)
+                    actionsContainer.style.display = 'flex'; 
                 } else {
                     statusText.innerText = "Error: " + data.error;
                 }
@@ -217,7 +225,8 @@
                 margin:       0.5,
                 filename:     'Socratic_Feedback_Report.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
+                // NEW: scrollY: 0 forces the capture to start at the absolute top, fixing the blank page bug!
+                html2canvas:  { scale: 2, scrollY: 0 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
             html2pdf().set(opt).from(element).save();
