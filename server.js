@@ -204,6 +204,7 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
         res.status(500).json({ error: 'The Socratic Co-Pilot encountered a glitch in the matrix.' });
     }
 });
+
 // =====================================================================
 // APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE)
 // =====================================================================
@@ -261,26 +262,30 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
             return res.status(400).json({ error: 'Invalid input mode.' });
         }
 
-        // Call the Gemini API with the Career Coach prompt
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" }); 
+        // Call the Gemini API using the NEW SDK
+        const result = await ai.models.generateContent({
+            model: 'gemini-2.5-flash', 
+            contents: [
+                userContent, 
+                "Please analyze this raw career history and structure it into a modern CV according to your system instructions."
+            ],
+            config: {
+                systemInstruction: EASY_APPLY_SYSTEM_PROMPT,
+                temperature: 0.7
+            }
+        });
         
-        // Pass both the system prompt and the user's messy input
-        const result = await model.generateContent([
-            EASY_APPLY_SYSTEM_PROMPT, 
-            "Here is the user's raw career history input:\n\n",
-            userContent
-        ]);
-        
-        const response = await result.response;
-        const cvText = response.text();
-
-        res.json({ feedback: cvText });
+        res.json({ feedback: result.text });
 
     } catch (error) {
         console.error('Error in Easy Apply CV generation:', error);
         res.status(500).json({ error: 'Failed to generate CV. Please try again.' });
     }
 });
+
+// =====================================================================
+// START THE SERVER
+// =====================================================================
 app.listen(port, () => {
     console.log(`🚀 Multi-Subject Socratic Server running securely on port ${port}`);
 });
