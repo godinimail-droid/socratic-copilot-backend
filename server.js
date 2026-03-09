@@ -3,7 +3,23 @@ const cors = require('cors');
 const multer = require('multer');
 require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
+const { google } = require('googleapis');
 
+// Bulletproof Private Key formatting (fixes a common Render bug with newlines)
+const privateKey = process.env.GOOGLE_PRIVATE_KEY 
+    ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') 
+    : '';
+
+// Authenticate with Google
+const auth = new google.auth.GoogleAuth({
+    credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: privateKey,
+    },
+    scopes: ['https://www.googleapis.com/auth/calendar.events'],
+});
+
+const calendar = google.calendar({ version: 'v3', auth });
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -286,6 +302,40 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
 // =====================================================================
 // START THE SERVER
 // =====================================================================
+// =====================================================================
+// APP NO. 3: SOCRATIC SCHEDULER (PING TEST)
+// =====================================================================
+
+app.get('/api/calendar-test', async (req, res) => {
+    try {
+        // We are asking Google for the next 5 upcoming events on your primary calendar
+        const response = await calendar.events.list({
+            calendarId: 'primary', // Make sure the Service Account was added to this calendar's sharing settings!
+            timeMin: (new Date()).toISOString(),
+            maxResults: 5,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        const events = response.data.items;
+        if (!events || events.length === 0) {
+            res.json({ message: 'Connection successful! But your calendar is currently empty.' });
+            return;
+        }
+
+        res.json({ 
+            message: 'Connection successful! Here are your upcoming events:', 
+            events: events.map(event => ({
+                summary: event.summary,
+                start: event.start.dateTime || event.start.date
+            }))
+        });
+
+    } catch (error) {
+        console.error('The Calendar Ping failed:', error);
+        res.status(500).json({ error: 'Failed to read calendar. Check logs.', details: error.message });
+    }
+});
 app.listen(port, () => {
     console.log(`🚀 Multi-Subject Socratic Server running securely on port ${port}`);
 });
