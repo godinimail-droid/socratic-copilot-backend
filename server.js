@@ -310,7 +310,7 @@ app.get('/api/calendar-test', async (req, res) => {
     try {
         // We are asking Google for the next 5 upcoming events on your primary calendar
         const response = await calendar.events.list({
-            calendarId: 'primary', // Make sure the Service Account was added to this calendar's sharing settings!
+            calendarId: 'info@onlinesupertutors.org', // Make sure the Service Account was added to this calendar's sharing settings!
             timeMin: (new Date()).toISOString(),
             maxResults: 5,
             singleEvents: true,
