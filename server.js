@@ -2,7 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const { GoogleGenAI } = require('@google/genai');
+// Reverting to the SDK that we KNOW works on your server
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { google } = require('googleapis');
 
 // =====================================================================
@@ -11,21 +12,17 @@ const { google } = require('googleapis');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json()); 
 
-// File upload handler for the CV Builder
 const upload = multer({ storage: multer.memoryStorage() });
 
 // =====================================================================
 // AI & API AUTHENTICATION
 // =====================================================================
+// Initializing Gemini with the proven syntax
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// 1. Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// 2. Initialize Google Calendar API
 const privateKey = process.env.GOOGLE_PRIVATE_KEY 
     ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') 
     : '';
@@ -39,10 +36,7 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const calendar = google.calendar({ version: 'v3', auth });
-
-// The email address of your primary tutoring calendar
 const MY_CALENDAR_ID = 'info@onlinesupertutors.org'; 
-
 
 // =====================================================================
 // ENDPOINT 1: THE CV BUILDER
@@ -88,19 +82,16 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
         if (userInput) contentArray.push(`Here is my raw history: ${userInput}`);
         if (imagePart) contentArray.push(imagePart);
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: contentArray
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(contentArray);
 
-        res.json({ feedback: response.text });
+        res.json({ feedback: result.response.text() });
 
     } catch (error) {
         console.error('CV Builder Error:', error);
         res.status(500).json({ error: 'Failed to generate CV. Please try again.' });
     }
 });
-
 
 // =====================================================================
 // ENDPOINT 2: CALENDAR PING TEST
@@ -135,18 +126,18 @@ app.get('/api/calendar-test', async (req, res) => {
     }
 });
 
-
 // =====================================================================
-// ENDPOINT 3: THE AI SCHEDULER BRAIN (SOCRATIC CONCIERGE)
+// ENDPOINT 3: THE AI SCHEDULER BRAIN
 // =====================================================================
 app.post('/api/chat-booking', async (req, res) => {
     try {
-        const userMessage = req.body.message;
-        if (!userMessage) {
-            return res.status(400).json({ error: 'Message is required.' });
+        const history = req.body.history;
+        if (!history || history.length === 0) {
+            return res.status(400).json({ error: 'Conversation history is required.' });
         }
         
-        // 1. Get Andrew's schedule for the next 7 days
+        const formattedHistory = history.map(msg => `${msg.role}: ${msg.text}`).join('\n');
+
         const now = new Date();
         const nextWeek = new Date();
         nextWeek.setDate(now.getDate() + 7);
@@ -170,7 +161,6 @@ app.post('/api/chat-booking', async (req, res) => {
             }).join('\n');
         }
 
-        // 2. Build the Master Prompt for Gemini
         const systemPrompt = `
         You are the 'OST Booking Guide', the highly intelligent front-desk assistant for Online Super Tutors (OST). 
         Your goal is to guide parents and students to the right tutor using a warm, frictionless, and slightly Socratic approach.
@@ -188,26 +178,24 @@ app.post('/api/chat-booking', async (req, res) => {
         * **James Martin Mugwanya:** Legal Expert. Can assist with many legal affairs from local to international. Law tutoring, university law admissions.
 
         ### YOUR INSTRUCTIONS:
-        1. When a user states their general need, DO NOT immediately ask them to book.
-        2. Act like Socrates: Ask ONE warm, clarifying question to discover their specific "pain point" (e.g., "A-Levels can be demanding. Are there specific modules causing friction?").
-        3. Once you know the specific subject or need, MATCH them with the perfect tutor from the fleet list above. If the request is complex or covers multiple areas, recommend an initial consultation with Andrew.
+        1. Read the CONVERSATION HISTORY below carefully. Do NOT ask for information the user has already provided.
+        2. Act like Socrates: If you are missing crucial information, ask ONE warm, clarifying question.
+        3. Once you know the specific subject AND level, MATCH them with the perfect tutor from the fleet list above. If the request is complex or covers multiple areas, recommend an initial consultation with Andrew.
         4. Briefly explain WHY that tutor is the perfect fit based on their bio.
         5. Ask if they would like to see that specific tutor's availability to book a session.
         6. Keep your responses short, conversational, and highly empathetic. Never sound like a robot.
         
-        User message: "${userMessage}"
+        ### CONVERSATION HISTORY SO FAR:
+        ${formattedHistory}
+        
+        RESPOND AS THE 'GUIDE' TO THE USER'S LAST MESSAGE:
         `;
 
-        // 3. Consult Gemini
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: systemPrompt
-        });
-
-        const aiReply = response.text;
-
-        // 4. Send the AI's response back to the frontend
-        res.json({ reply: aiReply });
+        // Reverted to the EXACT prompt call that worked for you earlier tonight
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(systemPrompt);
+        
+        res.json({ reply: result.response.text() });
 
     } catch (error) {
         console.error('AI Scheduler Error:', error);
@@ -215,10 +203,6 @@ app.post('/api/chat-booking', async (req, res) => {
     }
 });
 
-
-// =====================================================================
-// START THE SERVER
-// =====================================================================
 app.listen(port, () => {
     console.log(`🚀 Socratic Server is running on port ${port}`);
 });
