@@ -125,7 +125,7 @@ app.get('/api/calendar-test', async (req, res) => {
 });
 
 // =====================================================================
-// ENDPOINT 3: THE AI SCHEDULER BRAIN (WITH PATH 2 CALENDAR SYNC)
+// ENDPOINT 3: THE AI SCHEDULER BRAIN
 // =====================================================================
 app.post('/api/chat-booking', async (req, res) => {
     try {
@@ -188,6 +188,7 @@ app.post('/api/chat-booking', async (req, res) => {
         6. THE PITCH: Look at Andrew's Live Calendar Status. Propose exactly TWO specific dates and times for a brief consultation call with Andrew. Ensure these times do NOT overlap with his busy slots and fall within his working hours. 
         7. Ask the user if either of those times works for them to get started.
         8. Keep your responses short, conversational, and highly empathetic. Never sound like a robot.
+        9. THE HANDOFF: If the user explicitly agrees to a time or says they are ready to book, warmly say "Excellent! Let's lock that in." and provide this exact link to confirm the booking: https://calendar.app.google/ntVg7UzURrWK2Eh98
         
         ### CONVERSATION HISTORY SO FAR:
         ${formattedHistory}
