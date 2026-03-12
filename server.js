@@ -410,6 +410,66 @@ app.post('/api/chat-booking', async (req, res) => {
 // =====================================================================
 // START THE SERVER
 // =====================================================================
+// =====================================================================
+// APP NO. 4: THE UCAS ARCHITECT (PERSONAL STATEMENT BUILDER)
+// =====================================================================
+app.post('/api/ucas', async (req, res) => {
+    try {
+        const { course, subjects, brainDump } = req.body;
+        
+        if (!course || !brainDump) {
+            return res.status(400).json({ error: 'Course and Brain Dump are required.' });
+        }
+
+        const systemInstruction = `
+        You are an elite, £500/hour Oxbridge University Admissions Consultant. 
+        Your goal is to help a stressed A-Level student structure their UCAS Personal Statement. 
+        
+        CRITICAL RULE: DO NOT WRITE THE ESSAY FOR THEM. Universities use AI detectors. If you write it, they will be disqualified. 
+        Your job is to act as the ARCHITECT. Take their messy brain dump and organize it into a highly strategic, 5-paragraph blueprint.
+
+        Use this exact structure for your output (in clean Markdown):
+        
+        ## 🎯 The Core Narrative
+        [Identify the central theme or "hook" of their application based on their brain dump].
+
+        ## 🏗️ Paragraph-by-Paragraph Blueprint
+        
+        **Paragraph 1: The Hook (Why this course?)**
+        * What to write: [Advice based on their input]
+        
+        **Paragraph 2: Academic Engagement (The "Nerd" Paragraph)**
+        * What to write: [Tie their A-level subjects to the course]
+        
+        **Paragraph 3: Super-Curriculars (Going Above & Beyond)**
+        * What to write: [Map their books, podcasts, or projects to specific skills]
+        
+        **Paragraph 4: Transferable Skills (Extra-Curriculars)**
+        * What to write: [How their sports, music, or part-time job makes them a resilient student]
+        
+        **Paragraph 5: The Closer**
+        * What to write: [A punchy summary of their readiness for university]
+
+        ---
+        ## 💡 Consultant's Warning
+        [Give them 2 specific things to AVOID writing about (e.g., clichés) based on their specific course choice].
+        `;
+
+        const userPrompt = `Target Course: ${course}\nCurrent Subjects: ${subjects}\nRaw Brain Dump: ${brainDump}`;
+
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            systemInstruction: systemInstruction 
+        });
+        
+        const result = await model.generateContent(userPrompt);
+        res.json({ blueprint: result.response.text() });
+
+    } catch (error) {
+        console.error('UCAS Builder Error:', error);
+        res.status(500).json({ error: 'Failed to generate UCAS blueprint. Please try again.' });
+    }
+});
 app.listen(port, () => {
     console.log(`🚀 Multi-Subject Socratic Server running securely on port ${port}`);
 });
