@@ -80,8 +80,8 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
         if (userInput) contentArray.push(`Here is my raw history: ${userInput}`);
         if (imagePart) contentArray.push(imagePart);
 
-        // FIXED: Reverted to the rock-solid gemini-pro model
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // FIXED: Using Google's active gemini-2.5-flash model
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(contentArray);
 
         res.json({ feedback: result.response.text() });
@@ -190,8 +190,8 @@ app.post('/api/chat-booking', async (req, res) => {
         RESPOND AS THE 'GUIDE' TO THE USER'S LAST MESSAGE:
         `;
 
-        // FIXED: Reverted to the rock-solid gemini-pro model
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // FIXED: Using Google's active gemini-2.5-flash model
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(systemPrompt);
         
         res.json({ reply: result.response.text() });
