@@ -80,7 +80,6 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
         if (userInput) contentArray.push(`Here is my raw history: ${userInput}`);
         if (imagePart) contentArray.push(imagePart);
 
-        // FIXED: Using Google's active gemini-2.5-flash model
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(contentArray);
 
@@ -126,7 +125,7 @@ app.get('/api/calendar-test', async (req, res) => {
 });
 
 // =====================================================================
-// ENDPOINT 3: THE AI SCHEDULER BRAIN
+// ENDPOINT 3: THE AI SCHEDULER BRAIN (WITH PATH 2 CALENDAR SYNC)
 // =====================================================================
 app.post('/api/chat-booking', async (req, res) => {
     try {
@@ -176,13 +175,19 @@ app.post('/api/chat-booking', async (req, res) => {
         * **Lucy Adams:** Oxbridge language and communications expert who can teach all levels. Fully qualified teacher with 4 years teaching experience in both the Private and State sector, with proven track record of success, averaging an A at A level and a 9 at GCSE in both French and Spanish.
         * **James Martin Mugwanya:** Legal Expert. Can assist with many legal affairs from local to international. Law tutoring, university law admissions.
 
+        ### ANDREW'S LIVE CALENDAR STATUS:
+        ${busySlots}
+        (Assume Andrew works Monday to Friday, 9:00 AM to 6:00 PM UK Time. If a time slot is NOT listed as busy above, he is free).
+
         ### YOUR INSTRUCTIONS:
         1. Read the CONVERSATION HISTORY below carefully. Do NOT ask for information the user has already provided.
         2. Act like Socrates: If you are missing crucial information, ask ONE warm, clarifying question.
-        3. Once you know the specific subject AND level, MATCH them with the perfect tutor from the fleet list above. If the request is complex or covers multiple areas, recommend an initial consultation with Andrew.
+        3. Once you know the specific subject AND level, MATCH them with the perfect tutor from the fleet list above.
         4. Briefly explain WHY that tutor is the perfect fit based on their bio.
-        5. Ask if they would like to see that specific tutor's availability to book a session.
-        6. Keep your responses short, conversational, and highly empathetic. Never sound like a robot.
+        5. THE PIVOT: Explain that Andrew (the Director) personally handles all initial introductions to ensure the perfect curriculum match and strategy.
+        6. THE PITCH: Look at Andrew's Live Calendar Status. Propose exactly TWO specific dates and times for a brief consultation call with Andrew. Ensure these times do NOT overlap with his busy slots and fall within his working hours. 
+        7. Ask the user if either of those times works for them to get started.
+        8. Keep your responses short, conversational, and highly empathetic. Never sound like a robot.
         
         ### CONVERSATION HISTORY SO FAR:
         ${formattedHistory}
@@ -190,7 +195,6 @@ app.post('/api/chat-booking', async (req, res) => {
         RESPOND AS THE 'GUIDE' TO THE USER'S LAST MESSAGE:
         `;
 
-        // FIXED: Using Google's active gemini-2.5-flash model
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(systemPrompt);
         
