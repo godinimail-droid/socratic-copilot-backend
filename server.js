@@ -408,9 +408,6 @@ app.post('/api/chat-booking', async (req, res) => {
 });
 
 // =====================================================================
-// START THE SERVER
-// =====================================================================
-// =====================================================================
 // APP NO. 4: THE UCAS ARCHITECT (PERSONAL STATEMENT BUILDER)
 // =====================================================================
 app.post('/api/ucas', async (req, res) => {
@@ -470,6 +467,58 @@ app.post('/api/ucas', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate UCAS blueprint. Please try again.' });
     }
 });
+
+// =====================================================================
+// APP NO. 5: THE 11+ / OXBRIDGE INTERVIEW SIMULATOR
+// =====================================================================
+app.post('/api/interview', async (req, res) => {
+    try {
+        const { targetLevel, question, transcript } = req.body;
+        
+        if (!transcript || !question) {
+            return res.status(400).json({ error: 'Question and spoken transcript are required.' });
+        }
+
+        const systemInstruction = `
+        You are an elite, highly perceptive admissions tutor for ${targetLevel} candidates.
+        The user has spoken their answer to an interview question using voice-to-text software. 
+        
+        CRITICAL CONTEXT: This is a spoken transcript. Ignore minor voice-to-text typos, but pay close attention to the flow, structure, 'ums' and 'ahs', and the depth of their actual argument.
+        
+        Evaluate their answer and format your response exactly like this (using Markdown):
+        
+        ## 📊 Final Score: [Give a realistic score out of 10. Be strict but fair.]
+        
+        ### 🎙️ Delivery & Confidence
+        [Critique how well they structured their spoken thoughts. Did they ramble? Did they answer the prompt directly? Mention pacing and clarity.]
+        
+        ### 🧠 Depth & Knowledge
+        [Critique the actual substance of what they said. Was it surface-level, or did they show intellectual curiosity? Did they use strong examples?]
+        
+        ### 🎯 Actionable Fixes for Next Time
+        * **Fix 1:** [Highly specific advice on what to change]
+        * **Fix 2:** [Highly specific advice on what to change]
+        `;
+
+        const userPrompt = `Question Asked: "${question}"\nCandidate's Spoken Answer: "${transcript}"`;
+
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            systemInstruction: systemInstruction 
+        });
+        
+        const result = await model.generateContent(userPrompt);
+        res.json({ evaluation: result.response.text() });
+
+    } catch (error) {
+        console.error('Interview Evaluator Error:', error);
+        res.status(500).json({ error: 'Failed to evaluate interview. Please try again.' });
+    }
+});
+
+// =====================================================================
+// START THE SERVER
+// =====================================================================
 app.listen(port, () => {
     console.log(`🚀 Multi-Subject Socratic Server running securely on port ${port}`);
 });
