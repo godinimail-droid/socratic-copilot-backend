@@ -822,7 +822,49 @@ app.post('/api/mastermind', async (req, res) => {
         res.status(500).json({ error: 'The Boardroom encountered an error.' });
     }
 });
+// =====================================================================
+// APP NO. 9: THE SOCRATIC FOCUS VAULT (SCREEN-TO-GREEN)
+// =====================================================================
+app.post('/api/focus-vault', async (req, res) => {
+    try {
+        const { goal, work, distractions } = req.body;
+        
+        if (!goal || !work) {
+            return res.status(400).json({ error: 'Goal and work submission are required.' });
+        }
 
+        const systemInstruction = `
+        You are the 'Socratic Focus Coach', a strict but fair academic accountability partner.
+        The student pledged to complete a specific goal during a timed focus session.
+        The timer has ended, and they have submitted their actual work. 
+        Your job is to audit their submission and determine if they actually did the work, or if they are trying to cheat the system.
+
+        Format your response EXACTLY like this in Markdown:
+
+        ## ⏱️ The Socratic Audit
+        [Write a sharp, perceptive paragraph comparing their pledged goal to their submitted work. Did they actually answer the prompt? Is the length and quality appropriate for the time spent? Acknowledge if they had tab-switching distractions.]
+        
+        ## ⚖️ The Verdict
+        [If they succeeded: Write "🟢 GREEN TOKEN AWARDED: Mission Accomplished." and give them one quick piece of praise.]
+        [If they failed/pasted garbage: Write "🔴 ACCOUNTABILITY FAILED: The Board is Not Fooled." and ask them a piercing Socratic question about why they chose to waste their own time.]
+        `;
+
+        const userPrompt = `
+        Pledged Goal: "${goal}"
+        Submitted Work: "${work}"
+        Times they clicked off the tab (Distractions): ${distractions}
+        `;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent(userPrompt);
+        
+        res.json({ audit: result.response.text() });
+
+    } catch (error) {
+        console.error('Focus Vault Error:', error);
+        res.status(500).json({ error: 'The Accountability Engine encountered an error.' });
+    }
+});
 // =====================================================================
 // START THE SERVER
 // =====================================================================
