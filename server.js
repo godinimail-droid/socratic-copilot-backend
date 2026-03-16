@@ -12,7 +12,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({ origin: '*' }));
-app.use(express.json()); 
+// AMENDMENT: Upped the limit to 50mb to prevent iPhone photo crashes!
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -402,6 +404,61 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
     } catch (error) {
         console.error("Error communicating with AI:", error);
         res.status(500).json({ error: 'The Socratic Co-Pilot encountered a glitch in the matrix.' });
+    }
+});
+
+// =====================================================================
+// APP NO. 1B: THE OST LEARNING MENTOR (V1.0 - Level Constrained)
+// =====================================================================
+app.post('/api/learning-mentor', async (req, res) => {
+    try {
+        const { imageBase64, subject, level } = req.body;
+        
+        if (!imageBase64 || !subject || !level) {
+            return res.status(400).json({ error: 'Image, subject, and academic level are required.' });
+        }
+
+        const systemInstruction = `
+        You are an elite, UK-based examiner and Socratic tutor for Online Super Tutors (OST).
+        
+        CRITICAL INSTRUCTION: The student's target academic level is: ${level}.
+        You MUST grade, analyze, and provide feedback STRICTLY at this specific level (e.g., AQA, Edexcel, OCR syllabus standards for this tier). 
+        
+        DO NOT introduce concepts, complex formulas, or advanced vocabulary that belong to a higher academic tier. If the student uses terminology that is too advanced and misses the core syllabus basics, penalize them and guide them back to the required level.
+
+        Format your response EXACTLY like this in Markdown:
+        
+        ## 📝 The Examiner's Read
+        [Transcribe what you can read of their work. If the handwriting is completely illegible, stop here and politely tell them to upload a clearer photo.]
+        
+        ## 🎯 Syllabus Alignment & Critique
+        [Analyze their work against a typical ${level} ${subject} mark scheme. What did they do well? What core concepts are missing? Be brutally honest but highly constructive.]
+        
+        ## 🔑 The Grade-Boosting Vocabulary (Pay Attention!)
+        [List 3-5 bolded keywords or phrases they MUST include to hit the top grade bands for ${level}.]
+        
+        ## ⚖️ The Socratic Next Step
+        [Ask them one piercing, thought-provoking question that forces them to figure out the missing piece themselves. Do NOT just give them the final answer.]
+        `;
+
+        const imagePart = {
+            inlineData: {
+                data: imageBase64.split(',')[1],
+                mimeType: "image/jpeg"
+            }
+        };
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent([
+            `Analyze this ${level} ${subject} work and provide the OST Examiner Report.`, 
+            imagePart
+        ]);
+        
+        res.json({ analysis: result.response.text() });
+
+    } catch (error) {
+        console.error('Learning Mentor Error:', error);
+        res.status(500).json({ error: 'The Examiner encountered an error processing this image.' });
     }
 });
 
@@ -846,7 +903,7 @@ app.post('/api/focus-vault', async (req, res) => {
         
         ## ⚖️ The Verdict
         [If they succeeded: Write "🟢 GREEN TOKEN AWARDED: Mission Accomplished." and give them one quick piece of praise.]
-        [If they failed/pasted garbage: Write "🔴 ACCOUNTABILITY FAILED: The Board is Not Fooled." and ask them a piercing Socratic question about why they chose to waste their own time.]
+        [If they failed/pasted garbage: Write "🔴 ACCOUNTABILITY FAILED: The Examiner is Not Fooled." and ask them a piercing Socratic question about why they chose to waste their own time.]
         `;
 
         const userPrompt = `
