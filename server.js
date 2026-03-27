@@ -922,6 +922,58 @@ app.post('/api/focus-vault', async (req, res) => {
         res.status(500).json({ error: 'The Accountability Engine encountered an error.' });
     }
 });
+
+// =====================================================================
+// APP NO. 10: THE EXECUTIVE ECHO (BRAND VOICE CLONER)
+// =====================================================================
+app.post('/api/executive-echo', async (req, res) => {
+    try {
+        const { calibrationText, rawTranscript } = req.body;
+        
+        if (!calibrationText || !rawTranscript) {
+            return res.status(400).json({ error: 'Both calibration text and raw transcript are required.' });
+        }
+
+        const systemInstruction = `
+        You are 'The Executive Echo', an elite AI ghostwriter and brand voice cloner.
+        Unlike standard AI that outputs generic text, your job is to perfectly mimic the user's unique tone, cadence, formatting habits, and vocabulary based on a calibration sample they provide.
+        
+        Format your response exactly like this in Markdown:
+        
+        ## 🔍 Voice Calibration Complete
+        [Give a 1-sentence analytical summary of their writing style based on the sample. e.g., "Your tone is direct and punchy, favoring short sentences and high-impact verbs."]
+        
+        ---
+        ## 📱 Ready-to-Publish: LinkedIn Post
+        [Transform their raw transcript into a highly engaging LinkedIn post. Use their EXACT voice from the calibration. Include their typical line break rhythm and 2-3 relevant hashtags.]
+        
+        ---
+        ## 💬 Ready-to-Publish: Internal Team Memo (Slack/Teams)
+        [Transform the raw transcript into a concise, action-oriented update for their internal team. Keep it aligned with their calibration voice, but formatted for quick reading by employees.]
+        
+        ---
+        ## 📧 Ready-to-Publish: Newsletter Hook / Email Intro
+        [Transform the transcript into a compelling 3-4 sentence hook for an email newsletter or client update. It must sound like THEY wrote it.]
+        `;
+
+        const userPrompt = `
+        CALIBRATION SAMPLE (Mimic this voice perfectly):
+        "${calibrationText}"
+        
+        RAW TRANSCRIPT TO TRANSFORM:
+        "${rawTranscript}"
+        `;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent(userPrompt);
+        
+        res.json({ assets: result.response.text() });
+
+    } catch (error) {
+        console.error('Executive Echo Error:', error);
+        res.status(500).json({ error: 'The Echo Engine encountered an error.' });
+    }
+});
 // =====================================================================
 // START THE SERVER
 // =====================================================================
