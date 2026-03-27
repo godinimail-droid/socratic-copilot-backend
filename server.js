@@ -1033,6 +1033,94 @@ app.post('/api/pitch-architect', async (req, res) => {
 });
 
 // =====================================================================
+// APP NO. 12: THE AGENTIC SLIPSTREAM (PRIVATE WAR ROOM)
+// =====================================================================
+app.post('/api/slipstream', async (req, res) => {
+    try {
+        const { coreThought, voiceCalibration } = req.body;
+        
+        if (!coreThought) return res.status(400).json({ error: 'Core thought required.' });
+
+        console.log("🚀 INITIATING AGENTIC SLIPSTREAM. SPINNING UP 4 PARALLEL AGENTS...");
+
+        // AGENT 1: The AEO/GEO Blog Writer
+        const agentBlog = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
+            You are an elite SEO and AEO (Answer Engine Optimization) expert.
+            Take this core thought: "${coreThought}"
+            Write a high-ranking blog post.
+            CRITICAL AEO MANDATE: You must include a "Direct Answer" paragraph at the top optimized for Google AI Overviews. Include an FAQ section with schema-ready questions. Use the tone of an elite UK educator.
+        `);
+
+        // AGENT 2: The Pictory.ai Script Director (Long Form)
+        const agentPictory = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
+            You are a YouTube Video Director. Take this thought: "${coreThought}"
+            Write a script specifically formatted for Pictory AI. 
+            MANDATE: Break it into short sentences. Put bracketed [Visual: keywords here] before every single sentence so the Pictory API knows exactly what stock B-roll to fetch.
+        `);
+
+        // AGENT 3: The InVideo AI Prompt Engineer (Shorts/TikTok)
+        const agentInVideo = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
+            You are a TikTok/Shorts Viral Hook Specialist. Take this thought: "${coreThought}"
+            Write an ultra-optimized prompt that the user can paste directly into InVideo AI's prompt box to generate a 60-second video.
+            Include constraints for pacing, music vibe, and the exact script to use.
+        `);
+
+        // AGENT 4: The Social API Formatter (LinkedIn/Twitter)
+        const agentSocial = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
+            You are an API payload generator. Take this thought: "${coreThought}" and this voice calibration: "${voiceCalibration}".
+            Write 1 LinkedIn post and 1 Twitter Thread (3 tweets) in that exact voice.
+            Format the output cleanly so it can be parsed by Make.com or Zapier webhooks later.
+        `);
+
+        // EXECUTE ALL AGENTS SIMULTANEOUSLY
+        const [blogRes, pictoryRes, invideoRes, socialRes] = await Promise.all([
+            agentBlog, agentPictory, agentInVideo, agentSocial
+        ]);
+
+        res.json({ 
+            blog: blogRes.response.text(),
+            pictory: pictoryRes.response.text(),
+            invideo: invideoRes.response.text(),
+            social: socialRes.response.text()
+        });
+
+    } catch (error) {
+        console.error('Slipstream Error:', error);
+        res.status(500).json({ error: 'The Slipstream Matrix failed to compile.' });
+    }
+});
+
+// =====================================================================
+// APP NO. 13: THE SOCRATIC TREND HIJACKER (ZERO-INPUT AI)
+// =====================================================================
+app.post('/api/trend-hijack', async (req, res) => {
+    try {
+        const { topic } = req.body; // e.g., "UK Private Schools" or "AI in Education"
+
+        const systemInstruction = `
+            You are the OST Socratic Trend Hijacker. 
+            1. Search the web for today's breaking news regarding: ${topic}.
+            2. Find the most controversial or impactful article.
+            3. Write a 'Hot Take' LinkedIn post summarizing the news, but applying the "OST Socratic Mandate" (Technology should elevate intellect, not replace it. Elite standards must be maintained).
+            4. Include a link placeholder and 3 hashtags.
+        `;
+
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            systemInstruction: systemInstruction,
+            tools: [{ googleSearch: {} }] // The secret weapon: Live Web Access
+        });
+
+        const result = await model.generateContent(`Find news about ${topic} and write the post.`);
+        res.json({ post: result.response.text() });
+
+    } catch (error) {
+        console.error('Trend Hijack Error:', error);
+        res.status(500).json({ error: 'Failed to hijack trends.' });
+    }
+});
+
+// =====================================================================
 // START THE SERVER
 // =====================================================================
 app.listen(port, () => {
