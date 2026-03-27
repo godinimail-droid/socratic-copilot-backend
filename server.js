@@ -974,6 +974,64 @@ app.post('/api/executive-echo', async (req, res) => {
         res.status(500).json({ error: 'The Echo Engine encountered an error.' });
     }
 });
+
+// =====================================================================
+// APP NO. 11: THE SOCRATIC PITCH DECK ARCHITECT (B2B TIER 2)
+// =====================================================================
+app.post('/api/pitch-architect', async (req, res) => {
+    try {
+        const { businessPlan } = req.body;
+        
+        if (!businessPlan || businessPlan.length < 50) {
+            return res.status(400).json({ error: 'Please provide a detailed business plan or strategy document.' });
+        }
+
+        const systemInstruction = `
+        You are an elite, £1000/hour Venture Capital Consultant and Pitch Deck Architect.
+        Your job is to take a user's rambling, unstructured business plan and distill it into a flawless, 10-slide pitch deck structure.
+        
+        CRITICAL SOCRATIC MANDATE: Do not just summarize their document. Elevate it. If their business plan is missing a clear monetization strategy or competitive moat, call them out in the speaker notes and force them to define it.
+
+        Format your response exactly like this in Markdown, creating 10 distinct sections for Slides 1 through 10:
+        
+        ## 📊 The Deck Blueprint
+        
+        ### Slide 1: The Hook & Title
+        * **Headline:** [Write a punchy, 5-7 word headline summarizing their vision]
+        * **Visual Suggestion:** [e.g., A minimalist chart showing industry growth]
+        * **Speaker Note:** [What should they actually SAY while this slide is on screen?]
+        
+        ### Slide 2: The Problem
+        * **Headline:** [Define the painful problem they are solving]
+        * **Key Bullets:** [2-3 bullet points]
+        * **Speaker Note:** [How to make the investors feel the pain of this problem]
+        
+        [Continue this exact format for:]
+        Slide 3: The Solution (The "Aha!" Moment)
+        Slide 4: Market Size (TAM, SAM, SOM)
+        Slide 5: The Product / How it Works
+        Slide 6: Traction & Validation
+        Slide 7: The Business Model (How we make money)
+        Slide 8: The Competitive Moat (Why us?)
+        Slide 9: The Team
+        Slide 10: The Ask & Use of Funds
+        
+        ---
+        ## 🚨 Consultant's Reality Check
+        [Give them 2 brutal, honest critiques about the raw business plan they submitted. What is the weakest link an investor will immediately attack?]
+        `;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent(`Distill this business plan into a 10-slide pitch deck: "${businessPlan}"`);
+        
+        res.json({ deck: result.response.text() });
+
+    } catch (error) {
+        console.error('Pitch Architect Error:', error);
+        res.status(500).json({ error: 'The Architect encountered an error processing your plan.' });
+    }
+});
+
 // =====================================================================
 // START THE SERVER
 // =====================================================================
