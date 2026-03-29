@@ -478,6 +478,61 @@ app.post('/api/learning-mentor', async (req, res) => {
     }
 });
 
+
+// =====================================================================
+// APP NO. 1C: THE EXAMINER'S AUTOPSY (FAILED PAPER DIAGNOSIS)
+// =====================================================================
+app.post('/api/autopsy', async (req, res) => {
+    try {
+        const { imagesBase64, subject, level } = req.body;
+        
+        if (!imagesBase64 || !Array.isArray(imagesBase64) || imagesBase64.length === 0 || !subject || !level) {
+            return res.status(400).json({ error: 'Images, subject, and academic level are required.' });
+        }
+
+        const systemInstruction = `
+        You are 'The Examiner's Autopsy', an elite, highly critical UK-based exam marker for ${level} ${subject}.
+        The student has uploaded a failed past paper, mock exam, or poorly graded assignment spanning multiple pages.
+        
+        Your job is to conduct a forensic post-mortem on exactly WHY they lost marks. Do not sugarcoat it. 
+
+        Format your response EXACTLY like this in Markdown:
+        
+        ## 🔬 Cause of Death (The Blunt Diagnosis)
+        [In one punchy paragraph, summarize the fundamental flaw in their submission. Was it a lack of AO1 knowledge? Poor AO2 application? Did they misread the command word?]
+        
+        ## 🩸 The Bleeding Edge (Where Marks Were Lost)
+        [Identify 3 specific areas, quotes, or equations from their uploaded pages where they explicitly bled marks. Explain what the examiner was looking for, and what they did instead.]
+        
+        ## 🩺 The Resuscitation Plan
+        [Give them 3 highly actionable, ruthless rules to apply to their next paper to ensure they never make these specific mistakes again. Use bold text for key syllabus terminology.]
+        `;
+
+        const imageParts = imagesBase64.map(base64Str => {
+            const base64Data = base64Str.includes(',') ? base64Str.split(',')[1] : base64Str;
+            const mimeMatch = base64Str.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+            return { inlineData: { data: base64Data, mimeType: mimeType } };
+        });
+
+        const promptPayload = [`Perform a forensic examiner's autopsy on this ${level} ${subject} paper.`];
+        imageParts.forEach((img, index) => {
+            promptPayload.push(`\n--- PAGE ${index + 1} ---`);
+            promptPayload.push(img);
+        });
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent(promptPayload);
+        
+        res.json({ analysis: result.response.text() });
+
+    } catch (error) {
+        console.error('Autopsy Error:', error);
+        res.status(500).json({ error: 'The Autopsy encountered a fatal error.' });
+    }
+});
+
+
 // =====================================================================
 // APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE)
 // =====================================================================
