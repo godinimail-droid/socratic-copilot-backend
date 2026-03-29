@@ -408,11 +408,10 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
 });
 
 // =====================================================================
-// APP NO. 1B: THE OST LEARNING MENTOR (V1.1 - MULTI-PAGE UPGRADE)
+// APP NO. 1B: THE OST LEARNING MENTOR (V1.2 - CHRONOLOGICAL MULTI-PAGE)
 // =====================================================================
 app.post('/api/learning-mentor', async (req, res) => {
     try {
-        // UPGRADE: We now receive an array called imagesBase64
         const { imagesBase64, subject, level } = req.body;
         
         if (!imagesBase64 || !Array.isArray(imagesBase64) || imagesBase64.length === 0 || !subject || !level) {
@@ -423,30 +422,28 @@ app.post('/api/learning-mentor', async (req, res) => {
         You are an elite, UK-based examiner and Socratic tutor for Online Super Tutors (OST).
         
         CRITICAL INSTRUCTION: The student's target academic level is: ${level}.
-        You MUST grade, analyze, and provide feedback STRICTLY at this specific level (e.g., AQA, Edexcel, OCR syllabus standards for this tier). 
+        You MUST grade, analyze, and provide feedback STRICTLY at this specific level.
         
-        DO NOT introduce concepts, complex formulas, or advanced vocabulary that belong to a higher academic tier. If the student uses terminology that is too advanced and misses the core syllabus basics, penalize them and guide them back to the required level.
+        CRITICAL MULTI-PAGE DIRECTIVE: The student has uploaded an assignment spanning multiple pages. You MUST read every single page in chronological order to understand the full context, thesis, and structure of their work before you begin grading. Do not evaluate them based solely on page one.
 
         Format your response EXACTLY like this in Markdown:
         
         ## 📝 The Examiner's Read
-        [Summarize the thesis and core arguments of their work across all uploaded pages. If the handwriting is completely illegible, stop here and politely tell them to upload clearer photos.]
+        [Summarize the thesis and core arguments of their work across ALL uploaded pages. If the handwriting is completely illegible, stop here and politely tell them to upload clearer photos.]
         
         ## 🎯 Syllabus Alignment & Critique
-        [Analyze their work against a typical ${level} ${subject} mark scheme. What did they do well? What core concepts are missing? Be brutally honest but highly constructive. Evaluate the structure across the multiple pages.]
+        [Analyze their overall work against a typical ${level} ${subject} mark scheme. What did they do well across the whole piece? What core concepts are missing? Be brutally honest but highly constructive.]
         
-        ## 🔑 The Grade-Boosting Vocabulary (Pay Attention!)
+        ## 🔑 The Grade-Boosting Vocabulary
         [List 3-5 bolded keywords or phrases they MUST include to hit the top grade bands for ${level}.]
         
         ## ⚖️ The Socratic Next Step
         [Ask them one piercing, thought-provoking question that forces them to figure out the missing piece themselves. Do NOT just give them the final answer.]
         `;
 
-        // UPGRADE: Map the array of base64 strings into an array of Gemini image parts
+        // 1. Process the raw base64 strings into Gemini Image Parts
         const imageParts = imagesBase64.map(base64Str => {
-            // Strip the data:image/jpeg;base64, prefix if it exists
             const base64Data = base64Str.includes(',') ? base64Str.split(',')[1] : base64Str;
-            // Extract mimetype if possible, default to jpeg
             const mimeMatch = base64Str.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
             const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
 
@@ -458,13 +455,20 @@ app.post('/api/learning-mentor', async (req, res) => {
             };
         });
 
+        // 2. THE FIX: Explicitly label every single page for the AI's vision model
+        const promptPayload = [
+            `Analyze this ${level} ${subject} work (which spans ${imageParts.length} pages) and provide the OST Examiner Report. Read all pages in the order provided below.`
+        ];
+
+        imageParts.forEach((img, index) => {
+            promptPayload.push(`\n--- START OF PAGE ${index + 1} ---`);
+            promptPayload.push(img);
+        });
+
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
         
-        // UPGRADE: Feed the array of image parts alongside the prompt
-        const result = await model.generateContent([
-            `Analyze this ${level} ${subject} work (which may span multiple pages) and provide the OST Examiner Report. Please read all attached pages in order.`, 
-            ...imageParts
-        ]);
+        // 3. Send the highly structured payload
+        const result = await model.generateContent(promptPayload);
         
         res.json({ analysis: result.response.text() });
 
