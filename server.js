@@ -1233,6 +1233,55 @@ app.post('/api/trend-hijack', async (req, res) => {
 });
 
 // =====================================================================
+// APP NO. 14: THE WAR ROOM RADAR (LIVE TREND SCRAPER)
+// =====================================================================
+app.post('/api/fetch-trends', async (req, res) => {
+    try {
+        const { industry } = req.body;
+        if (!industry) return res.status(400).json({ error: 'Industry topic required.' });
+
+        console.log(`📡 RADAR ACTIVE: Pinging live web for trends in [${industry}]...`);
+
+        const systemInstruction = `
+        You are the 'OST War Room Radar', an elite intelligence scraper. 
+        Your mission: Search the live web for the top 3 most viral, impactful, and controversial breaking news stories right now regarding: ${industry}.
+        
+        CRITICAL FORMATTING MANDATE:
+        You must return ONLY a raw JSON array containing exactly 3 strings. Each string must be a catchy headline followed by a 1-sentence summary.
+        Do NOT wrap the output in markdown code blocks (like \`\`\`json). Just the raw array.
+        
+        Example Output:
+        [
+          "🚨 OpenAI Releases New Model: The update promises to disrupt higher education.",
+          "📉 UK Private Schools Face VAT Hike: Parents are scrambling to restructure finances.",
+          "💼 The End of Remote Work?: Major tech firm demands full return to the office."
+        ]
+        `;
+
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            systemInstruction: systemInstruction,
+            tools: [{ googleSearch: {} }] // 🌐 LIVE WEB ACCESS ENABLED
+        });
+
+        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}.`);
+        
+        // Clean up the AI response just in case it disobeys and adds markdown
+        let jsonText = result.response.text().trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+        }
+        
+        const trendsArray = JSON.parse(jsonText);
+        res.json({ trends: trendsArray });
+
+    } catch (error) {
+        console.error('Radar Error:', error);
+        res.status(500).json({ error: 'The Radar encountered interference and failed to fetch trends.' });
+    }
+});
+
+// =====================================================================
 // START THE SERVER
 // =====================================================================
 app.listen(port, () => {
