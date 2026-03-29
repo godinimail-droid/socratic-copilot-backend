@@ -408,14 +408,15 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
 });
 
 // =====================================================================
-// APP NO. 1B: THE OST LEARNING MENTOR (V1.0 - Level Constrained)
+// APP NO. 1B: THE OST LEARNING MENTOR (V1.1 - MULTI-PAGE UPGRADE)
 // =====================================================================
 app.post('/api/learning-mentor', async (req, res) => {
     try {
-        const { imageBase64, subject, level } = req.body;
+        // UPGRADE: We now receive an array called imagesBase64
+        const { imagesBase64, subject, level } = req.body;
         
-        if (!imageBase64 || !subject || !level) {
-            return res.status(400).json({ error: 'Image, subject, and academic level are required.' });
+        if (!imagesBase64 || !Array.isArray(imagesBase64) || imagesBase64.length === 0 || !subject || !level) {
+            return res.status(400).json({ error: 'Images, subject, and academic level are required.' });
         }
 
         const systemInstruction = `
@@ -429,10 +430,10 @@ app.post('/api/learning-mentor', async (req, res) => {
         Format your response EXACTLY like this in Markdown:
         
         ## 📝 The Examiner's Read
-        [Transcribe what you can read of their work. If the handwriting is completely illegible, stop here and politely tell them to upload a clearer photo.]
+        [Summarize the thesis and core arguments of their work across all uploaded pages. If the handwriting is completely illegible, stop here and politely tell them to upload clearer photos.]
         
         ## 🎯 Syllabus Alignment & Critique
-        [Analyze their work against a typical ${level} ${subject} mark scheme. What did they do well? What core concepts are missing? Be brutally honest but highly constructive.]
+        [Analyze their work against a typical ${level} ${subject} mark scheme. What did they do well? What core concepts are missing? Be brutally honest but highly constructive. Evaluate the structure across the multiple pages.]
         
         ## 🔑 The Grade-Boosting Vocabulary (Pay Attention!)
         [List 3-5 bolded keywords or phrases they MUST include to hit the top grade bands for ${level}.]
@@ -441,24 +442,35 @@ app.post('/api/learning-mentor', async (req, res) => {
         [Ask them one piercing, thought-provoking question that forces them to figure out the missing piece themselves. Do NOT just give them the final answer.]
         `;
 
-        const imagePart = {
-            inlineData: {
-                data: imageBase64.split(',')[1],
-                mimeType: "image/jpeg"
-            }
-        };
+        // UPGRADE: Map the array of base64 strings into an array of Gemini image parts
+        const imageParts = imagesBase64.map(base64Str => {
+            // Strip the data:image/jpeg;base64, prefix if it exists
+            const base64Data = base64Str.includes(',') ? base64Str.split(',')[1] : base64Str;
+            // Extract mimetype if possible, default to jpeg
+            const mimeMatch = base64Str.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+
+            return {
+                inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType
+                }
+            };
+        });
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        
+        // UPGRADE: Feed the array of image parts alongside the prompt
         const result = await model.generateContent([
-            `Analyze this ${level} ${subject} work and provide the OST Examiner Report.`, 
-            imagePart
+            `Analyze this ${level} ${subject} work (which may span multiple pages) and provide the OST Examiner Report. Please read all attached pages in order.`, 
+            ...imageParts
         ]);
         
         res.json({ analysis: result.response.text() });
 
     } catch (error) {
         console.error('Learning Mentor Error:', error);
-        res.status(500).json({ error: 'The Examiner encountered an error processing this image.' });
+        res.status(500).json({ error: 'The Examiner encountered an error processing these images.' });
     }
 });
 
@@ -924,7 +936,7 @@ app.post('/api/focus-vault', async (req, res) => {
 });
 
 // =====================================================================
-// APP NO. 10: THE EXECUTIVE ECHO (BRAND VOICE CLONER)
+// APP NO. 10: THE EXECUTIVE ECHO (BRAND VOICE ClONER)
 // =====================================================================
 app.post('/api/executive-echo', async (req, res) => {
     try {
