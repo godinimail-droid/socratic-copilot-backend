@@ -532,6 +532,47 @@ app.post('/api/autopsy', async (req, res) => {
     }
 });
 
+// =====================================================================
+// APP NO. 1D: THE REVISION CARTOGRAPHER (STUDY PLANNER)
+// =====================================================================
+app.post('/api/cartographer', async (req, res) => {
+    try {
+        const { level, subject, timeframe, topics } = req.body;
+        
+        if (!topics || !timeframe) {
+            return res.status(400).json({ error: 'Timeframe and topics are required.' });
+        }
+
+        const systemInstruction = `
+        You are 'The Revision Cartographer', an elite academic strategist specializing in cognitive science, active recall, and spaced repetition.
+        The student is preparing for a ${level} ${subject} exam in exactly ${timeframe}.
+        They need to study these specific topics/weaknesses: ${topics}.
+
+        Your job is to build them a ruthless, highly efficient study map. No passive reading allowed.
+
+        Format your response EXACTLY like this in Markdown:
+        
+        ## 🗺️ The Cognitive Strategy
+        [In 2 punchy sentences, explain the macro-strategy for conquering this specific subject. (e.g., "A-Level Maths is not about memorization, it is about pattern recognition under pressure.")]
+        
+        ## 📅 The Attack Plan (${timeframe})
+        [Break down their submitted topics into a weekly or phased schedule. Use spaced repetition principles—meaning you must force them to revisit older topics in later weeks while learning new ones. Use bullet points for each phase/week.]
+        
+        ## 🧠 High-Yield Tactics
+        * **Tactic 1:** [Give them one highly specific active recall technique for this exact subject. e.g., "Blurting" for Biology, "Closed-book derivation" for Physics.]
+        * **Tactic 2:** [Give them one specific rule about how to use Past Papers for this subject.]
+        `;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+        const result = await model.generateContent(`Build a study map for these topics: "${topics}"`);
+        
+        res.json({ schedule: result.response.text() });
+
+    } catch (error) {
+        console.error('Cartographer Error:', error);
+        res.status(500).json({ error: 'The Cartographer failed to map the route.' });
+    }
+});
 
 // =====================================================================
 // APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE)
