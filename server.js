@@ -1247,8 +1247,10 @@ app.post('/api/fetch-trends', async (req, res) => {
         Your mission: Search the live web for the top 3 most viral, impactful, and controversial breaking news stories right now regarding: ${industry}.
         
         CRITICAL FORMATTING MANDATE:
-        You must return ONLY a raw JSON array containing exactly 3 strings. Each string must be a catchy headline followed by a 1-sentence summary.
-        Do NOT wrap the output in markdown code blocks (like \`\`\`json). Just the raw array.
+        1. You MUST return ONLY a raw JSON array containing EXACTLY 3 items. 
+        2. Do NOT split the headline and summary into separate items. 
+        3. Each of the 3 strings must follow this exact format: "[Emoji] [Catchy Headline]: [1-Sentence Summary]".
+        4. Do NOT wrap the output in markdown code blocks (like \`\`\`json).
         
         Example Output:
         [
