@@ -1257,14 +1257,7 @@ app.post('/api/fetch-trends', async (req, res) => {
         1. You MUST return ONLY a raw JSON array containing EXACTLY 3 items. 
         2. Do NOT split the headline and summary into separate items. 
         3. Each of the 3 strings must follow this exact format: "[Emoji] [Catchy Headline]: [1-Sentence Summary]".
-        4. Do NOT include any conversational text.
-        
-        Example Output:
-        [
-          "🚨 OpenAI Releases New Model: The update promises to disrupt higher education.",
-          "📉 UK Private Schools Face VAT Hike: Parents are scrambling to restructure finances.",
-          "💼 The End of Remote Work?: Major tech firm demands full return to the office."
-        ]
+        4. Do NOT include any conversational text. No markdown blocks. Just the raw array.
         `;
 
         const model = genAI.getGenerativeModel({ 
@@ -1276,8 +1269,16 @@ app.post('/api/fetch-trends', async (req, res) => {
 
         const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Output ONLY a JSON array.`);
         
-        let jsonText = result.response.text().trim();
+        let jsonText = "";
+        try {
+            jsonText = result.response.text().trim();
+        } catch(e) {
+            console.error("Failed to extract text. Safety block or empty?", e);
+            throw new Error("Response was blocked or empty.");
+        }
         
+        console.log("Raw Radar Output:", jsonText); // Debugging log to see exactly what comes back
+
         // 🛡️ TITANIUM FAIL-SAFE 2: The Mathematical Extractor
         const startIndex = jsonText.indexOf('[');
         const endIndex = jsonText.lastIndexOf(']');
@@ -1286,7 +1287,36 @@ app.post('/api/fetch-trends', async (req, res) => {
             jsonText = jsonText.substring(startIndex, endIndex + 1);
         }
         
-        const trendsArray = JSON.parse(jsonText);
+        let trendsArray = [];
+        try {
+            const parsedData = JSON.parse(jsonText);
+            // Handle cases where the AI wraps the array inside an object
+            if (Array.isArray(parsedData)) {
+                trendsArray = parsedData;
+            } else if (parsedData.trends && Array.isArray(parsedData.trends)) {
+                trendsArray = parsedData.trends;
+            } else {
+                // If it's a generic object, try to find an array value inside it
+                const possibleArray = Object.values(parsedData).find(val => Array.isArray(val));
+                if (possibleArray) trendsArray = possibleArray;
+            }
+        } catch (e) {
+            console.error("JSON Parsing failed completely. Falling back to regex extraction.", e);
+            // 🛡️ TITANIUM FAIL-SAFE 3: Forced Regex Extraction
+            const stringMatches = jsonText.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g);
+            if (stringMatches) {
+                 trendsArray = stringMatches.map(s => s.replace(/(^"|"$)/g, '')).filter(s => s.length > 15).slice(0, 3);
+            }
+        }
+        
+        // Final fallback to ensure the frontend doesn't hang
+        if (!trendsArray || trendsArray.length === 0) {
+             trendsArray = [
+                 `📡 Scan complete for ${industry}, but structured data failed. Please try again.`,
+                 `🚨 Error Fallback: Check the Render server logs to see raw output.`
+             ];
+        }
+
         res.json({ trends: trendsArray });
 
     } catch (error) {
