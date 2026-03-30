@@ -455,7 +455,7 @@ app.post('/api/learning-mentor', async (req, res) => {
             };
         });
 
-        // 2. THE FIX: Explicitly label every single page for the AI's vision model
+        // 2. Explicitly label every single page for the AI's vision model
         const promptPayload = [
             `Analyze this ${level} ${subject} work (which spans ${imageParts.length} pages) and provide the OST Examiner Report. Read all pages in the order provided below.`
         ];
@@ -991,6 +991,7 @@ app.post('/api/mastermind', async (req, res) => {
         res.status(500).json({ error: 'The Boardroom encountered an error.' });
     }
 });
+
 // =====================================================================
 // APP NO. 9: THE SOCRATIC FOCUS VAULT (SCREEN-TO-GREEN)
 // =====================================================================
@@ -1155,7 +1156,6 @@ app.post('/api/slipstream', async (req, res) => {
 
         console.log("🚀 INITIATING AGENTIC SLIPSTREAM. SPINNING UP 4 PARALLEL AGENTS...");
 
-        // THE TURBOCHARGER: We define the Persona Lock here, to inject into the existing agents.
         const personaLock = `
         CRITICAL VOICE CALIBRATION (THE PERSONA LOCK):
         Analyze this provided writing snippet: "${voiceCalibration || 'Professional, authoritative, yet approachable.'}"
@@ -1163,7 +1163,6 @@ app.post('/api/slipstream', async (req, res) => {
         ANTI-SANITIZATION MANDATE: You are strictly forbidden from acting like a polite, generic AI. You MUST clone the grit, attitude, and specific intellectual aggression of the provided snippet and apply it flawlessly to your output. Do not use generic corporate jargon.
         `;
 
-        // AGENT 1: The AEO/GEO Blog Writer (Original brain + Persona Lock)
         const agentBlog = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are an elite SEO and AEO (Answer Engine Optimization) expert.
             Take this core thought: "${coreThought}"
@@ -1172,7 +1171,6 @@ app.post('/api/slipstream', async (req, res) => {
             ${personaLock}
         `);
 
-        // AGENT 2: The Pictory.ai Script Director (Original brain + Persona Lock)
         const agentPictory = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are a YouTube Video Director. Take this thought: "${coreThought}"
             Write a script specifically formatted for Pictory AI. 
@@ -1180,7 +1178,6 @@ app.post('/api/slipstream', async (req, res) => {
             ${personaLock}
         `);
 
-        // AGENT 3: The InVideo AI Prompt Engineer (Original brain + Persona Lock)
         const agentInVideo = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are a TikTok/Shorts Viral Hook Specialist. Take this thought: "${coreThought}"
             Write an ultra-optimized prompt that the user can paste directly into InVideo AI's prompt box to generate a 60-second video.
@@ -1188,7 +1185,6 @@ app.post('/api/slipstream', async (req, res) => {
             ${personaLock}
         `);
 
-        // AGENT 4: The Social API Formatter (Original brain + Persona Lock)
         const agentSocial = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are an API payload generator. Take this thought: "${coreThought}" and this voice calibration: "${voiceCalibration}".
             Write 1 LinkedIn post and 1 Twitter Thread (3 tweets).
@@ -1196,7 +1192,6 @@ app.post('/api/slipstream', async (req, res) => {
             ${personaLock}
         `);
 
-        // EXECUTE ALL AGENTS SIMULTANEOUSLY
         const [blogRes, pictoryRes, invideoRes, socialRes] = await Promise.all([
             agentBlog, agentPictory, agentInVideo, agentSocial
         ]);
@@ -1219,7 +1214,7 @@ app.post('/api/slipstream', async (req, res) => {
 // =====================================================================
 app.post('/api/trend-hijack', async (req, res) => {
     try {
-        const { topic } = req.body; // e.g., "UK Private Schools" or "AI in Education"
+        const { topic } = req.body; 
 
         const systemInstruction = `
             You are the OST Socratic Trend Hijacker. 
@@ -1232,7 +1227,7 @@ app.post('/api/trend-hijack', async (req, res) => {
         const model = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
             systemInstruction: systemInstruction,
-            tools: [{ googleSearch: {} }] // The secret weapon: Live Web Access
+            tools: [{ googleSearch: {} }] 
         });
 
         const result = await model.generateContent(`Find news about ${topic} and write the post.`);
@@ -1262,7 +1257,7 @@ app.post('/api/fetch-trends', async (req, res) => {
         1. You MUST return ONLY a raw JSON array containing EXACTLY 3 items. 
         2. Do NOT split the headline and summary into separate items. 
         3. Each of the 3 strings must follow this exact format: "[Emoji] [Catchy Headline]: [1-Sentence Summary]".
-        4. Do NOT wrap the output in markdown code blocks (like \`\`\`json).
+        4. Do NOT include any conversational text.
         
         Example Output:
         [
@@ -1275,15 +1270,20 @@ app.post('/api/fetch-trends', async (req, res) => {
         const model = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
             systemInstruction: systemInstruction,
-            tools: [{ googleSearch: {} }] // 🌐 LIVE WEB ACCESS ENABLED
+            tools: [{ googleSearch: {} }], // 🌐 LIVE WEB ACCESS ENABLED
+            generationConfig: { responseMimeType: "application/json" } // 🛡️ TITANIUM FAIL-SAFE 1
         });
 
-        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}.`);
+        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Output ONLY a JSON array.`);
         
-        // Clean up the AI response just in case it disobeys and adds markdown
         let jsonText = result.response.text().trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+        
+        // 🛡️ TITANIUM FAIL-SAFE 2: The Mathematical Extractor
+        const startIndex = jsonText.indexOf('[');
+        const endIndex = jsonText.lastIndexOf(']');
+        
+        if (startIndex !== -1 && endIndex !== -1) {
+            jsonText = jsonText.substring(startIndex, endIndex + 1);
         }
         
         const trendsArray = JSON.parse(jsonText);
@@ -1291,7 +1291,7 @@ app.post('/api/fetch-trends', async (req, res) => {
 
     } catch (error) {
         console.error('Radar Error:', error);
-        res.status(500).json({ error: 'The Radar encountered interference and failed to fetch trends.' });
+        res.status(500).json({ error: 'The Radar encountered interference and failed to fetch trends.', details: error.message });
     }
 });
 
