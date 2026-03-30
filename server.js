@@ -1254,8 +1254,14 @@ app.post('/api/fetch-trends', async (req, res) => {
         Your mission: Search the live web for the top 3 most viral, impactful, and controversial breaking news stories right now regarding: ${industry}.
         
         CRITICAL FORMATTING MANDATE:
-        Output ONLY a raw JSON array of 3 strings. Do NOT wrap it in markdown. Do NOT use the word "json".
-        Format: ["[Emoji] [Catchy Headline]: [Summary]", "[Emoji] [Headline]: [Summary]", "[Emoji] [Headline]: [Summary]"]
+        Do NOT output JSON. Do NOT use markdown code blocks. 
+        You must output exactly 3 lines of plain text. 
+        Each line MUST start with the exact word "TREND:" followed by the trend.
+        
+        Example Output:
+        TREND: 🚨 OpenAI Releases New Model: The update promises to disrupt higher education.
+        TREND: 📉 UK Private Schools Face VAT Hike: Parents are scrambling to restructure finances.
+        TREND: 💼 The End of Remote Work?: Major tech firm demands full return to the office.
         `;
 
         const model = genAI.getGenerativeModel({ 
@@ -1264,53 +1270,40 @@ app.post('/api/fetch-trends', async (req, res) => {
             tools: [{ googleSearch: {} }] // 🌐 LIVE WEB ACCESS ENABLED
         });
 
-        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Output ONLY a JSON array of strings.`);
+        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Use the TREND: prefix.`);
         
-        let jsonText = "";
+        let rawText = "";
         try {
-            jsonText = result.response.text().trim();
+            rawText = result.response.text().trim();
         } catch(e) {
             console.error("Failed to extract text. Safety block or empty?", e);
             throw new Error("Response was blocked or empty.");
         }
         
-        console.log("Raw Radar Output:", jsonText); // Debugging log to see exactly what comes back
+        console.log("Raw Radar Output:\n", rawText);
 
-        // 🛡️ TITANIUM FAIL-SAFE 2: The Mathematical Extractor
-        const startIndex = jsonText.indexOf('[');
-        const endIndex = jsonText.lastIndexOf(']');
+        // 🛡️ THE TITANIUM PLAIN-TEXT EXTRACTOR
+        // Split by lines, find lines that contain "TREND:", and clean them up
+        let trendsArray = rawText
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.includes('TREND:'))
+            .map(line => line.replace(/^(?:\d+\.\s*)?TREND:\s*/i, '').replace(/\*+/g, '').trim()); 
         
-        if (startIndex !== -1 && endIndex !== -1) {
-            jsonText = jsonText.substring(startIndex, endIndex + 1);
-        }
-        
-        let trendsArray = [];
-        try {
-            const parsedData = JSON.parse(jsonText);
-            // Handle cases where the AI wraps the array inside an object
-            if (Array.isArray(parsedData)) {
-                trendsArray = parsedData;
-            } else if (parsedData.trends && Array.isArray(parsedData.trends)) {
-                trendsArray = parsedData.trends;
-            } else {
-                // If it's a generic object, try to find an array value inside it
-                const possibleArray = Object.values(parsedData).find(val => Array.isArray(val));
-                if (possibleArray) trendsArray = possibleArray;
-            }
-        } catch (e) {
-            console.error("JSON Parsing failed completely. Falling back to regex extraction.", e);
-            // 🛡️ TITANIUM FAIL-SAFE 3: Forced Regex Extraction
-            const stringMatches = jsonText.match(/"([^"\\]*(?:\\.[^"\\]*)*)"/g);
-            if (stringMatches) {
-                 trendsArray = stringMatches.map(s => s.replace(/(^"|"$)/g, '')).filter(s => s.length > 15).slice(0, 3);
-            }
+        // Fallback if the AI completely ignored the "TREND:" prefix but still gave us lines
+        if (trendsArray.length === 0) {
+            trendsArray = rawText
+                .split('\n')
+                .map(line => line.trim().replace(/\*+/g, ''))
+                .filter(line => line.length > 20) 
+                .slice(0, 3);
         }
         
         // Final fallback to ensure the frontend doesn't hang
         if (!trendsArray || trendsArray.length === 0) {
              trendsArray = [
-                 `📡 Scan complete for ${industry}, but structured data failed. Please try again.`,
-                 `🚨 Error Fallback: Check the Render server logs to see raw output.`
+                 `📡 Scan complete for ${industry}, but formatting failed. Check logs.`,
+                 `🚨 We found data, but the AI refused to format it correctly.`
              ];
         }
 
