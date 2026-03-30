@@ -1254,20 +1254,17 @@ app.post('/api/fetch-trends', async (req, res) => {
         Your mission: Search the live web for the top 3 most viral, impactful, and controversial breaking news stories right now regarding: ${industry}.
         
         CRITICAL FORMATTING MANDATE:
-        1. You MUST return ONLY a raw JSON array containing EXACTLY 3 items. 
-        2. Do NOT split the headline and summary into separate items. 
-        3. Each of the 3 strings must follow this exact format: "[Emoji] [Catchy Headline]: [1-Sentence Summary]".
-        4. Do NOT include any conversational text. No markdown blocks. Just the raw array.
+        Output ONLY a raw JSON array of 3 strings. Do NOT wrap it in markdown. Do NOT use the word "json".
+        Format: ["[Emoji] [Catchy Headline]: [Summary]", "[Emoji] [Headline]: [Summary]", "[Emoji] [Headline]: [Summary]"]
         `;
 
         const model = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
             systemInstruction: systemInstruction,
-            tools: [{ googleSearch: {} }], // 🌐 LIVE WEB ACCESS ENABLED
-            generationConfig: { responseMimeType: "application/json" } // 🛡️ TITANIUM FAIL-SAFE 1
+            tools: [{ googleSearch: {} }] // 🌐 LIVE WEB ACCESS ENABLED
         });
 
-        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Output ONLY a JSON array.`);
+        const result = await model.generateContent(`Fetch 3 live trending topics for ${industry}. Output ONLY a JSON array of strings.`);
         
         let jsonText = "";
         try {
