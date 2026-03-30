@@ -1155,33 +1155,45 @@ app.post('/api/slipstream', async (req, res) => {
 
         console.log("🚀 INITIATING AGENTIC SLIPSTREAM. SPINNING UP 4 PARALLEL AGENTS...");
 
-        // AGENT 1: The AEO/GEO Blog Writer
+        // THE TURBOCHARGER: We define the Persona Lock here, to inject into the existing agents.
+        const personaLock = `
+        CRITICAL VOICE CALIBRATION (THE PERSONA LOCK):
+        Analyze this provided writing snippet: "${voiceCalibration || 'Professional, authoritative, yet approachable.'}"
+        Before you write, internally isolate their exact persona, philosophical angle, vocabulary, and sentence pacing.
+        ANTI-SANITIZATION MANDATE: You are strictly forbidden from acting like a polite, generic AI. You MUST clone the grit, attitude, and specific intellectual aggression of the provided snippet and apply it flawlessly to your output. Do not use generic corporate jargon.
+        `;
+
+        // AGENT 1: The AEO/GEO Blog Writer (Original brain + Persona Lock)
         const agentBlog = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are an elite SEO and AEO (Answer Engine Optimization) expert.
             Take this core thought: "${coreThought}"
             Write a high-ranking blog post.
-            CRITICAL AEO MANDATE: You must include a "Direct Answer" paragraph at the top optimized for Google AI Overviews. Include an FAQ section with schema-ready questions. Use the tone of an elite UK educator.
+            CRITICAL AEO MANDATE: You must include a "Direct Answer" paragraph at the top optimized for Google AI Overviews. Include an FAQ section with schema-ready questions.
+            ${personaLock}
         `);
 
-        // AGENT 2: The Pictory.ai Script Director (Long Form)
+        // AGENT 2: The Pictory.ai Script Director (Original brain + Persona Lock)
         const agentPictory = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are a YouTube Video Director. Take this thought: "${coreThought}"
             Write a script specifically formatted for Pictory AI. 
             MANDATE: Break it into short sentences. Put bracketed [Visual: keywords here] before every single sentence so the Pictory API knows exactly what stock B-roll to fetch.
+            ${personaLock}
         `);
 
-        // AGENT 3: The InVideo AI Prompt Engineer (Shorts/TikTok)
+        // AGENT 3: The InVideo AI Prompt Engineer (Original brain + Persona Lock)
         const agentInVideo = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are a TikTok/Shorts Viral Hook Specialist. Take this thought: "${coreThought}"
             Write an ultra-optimized prompt that the user can paste directly into InVideo AI's prompt box to generate a 60-second video.
             Include constraints for pacing, music vibe, and the exact script to use.
+            ${personaLock}
         `);
 
-        // AGENT 4: The Social API Formatter (LinkedIn/Twitter)
+        // AGENT 4: The Social API Formatter (Original brain + Persona Lock)
         const agentSocial = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).generateContent(`
             You are an API payload generator. Take this thought: "${coreThought}" and this voice calibration: "${voiceCalibration}".
-            Write 1 LinkedIn post and 1 Twitter Thread (3 tweets) in that exact voice.
+            Write 1 LinkedIn post and 1 Twitter Thread (3 tweets).
             Format the output cleanly so it can be parsed by Make.com or Zapier webhooks later.
+            ${personaLock}
         `);
 
         // EXECUTE ALL AGENTS SIMULTANEOUSLY
