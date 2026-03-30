@@ -1296,6 +1296,83 @@ app.post('/api/fetch-trends', async (req, res) => {
 });
 
 // =====================================================================
+// APP NO. 15: THE OST OSCE (OMNISTREAM CAMPAIGN ENGINE)
+// =====================================================================
+app.post('/api/osce', async (req, res) => {
+    try {
+        const { coreThought, brandProfile, playbook, customAssets } = req.body;
+        
+        if (!coreThought) return res.status(400).json({ error: 'Core thought required.' });
+
+        console.log(`🚀 IGNITING OST OSCE. Playbook: [${playbook.toUpperCase()}]`);
+
+        // 1. THE BRAND VAULT: HARDCODING THE MEMORY CORE
+        const personaLock = `
+        CRITICAL BRAND VAULT DIRECTIVES (THE PERSONA LOCK):
+        You are operating as the marketing brain for this specific brand. You MUST strictly adhere to these rules for the asset you generate:
+        - Target Audience: "${brandProfile.audience || 'General professional audience'}"
+        - Core Offer / Call to Action: "${brandProfile.offer || 'Learn more'}"
+        - PERMANENT NEGATIVE RULES: "${brandProfile.rules || 'Maintain a professional, authoritative tone.'}"
+        
+        ANTI-SANITIZATION MANDATE: You are strictly forbidden from acting like a polite, generic AI. You MUST apply the negative rules flawlessly. Clone the grit and intellectual authority required for this brand.
+        `;
+
+        // 2. THE AGENT DICTIONARY: INSTRUCTIONS FOR EVERY POSSIBLE ASSET
+        const agentPrompts = {
+            linkedin: 'Write 1 highly engaging, thought-leadership LinkedIn post. Format with clean line breaks and 3 hashtags. Include the Core Offer naturally.',
+            twitter: 'Write a punchy 3-part Twitter Thread. Number them 1/3, 2/3, 3/3. The first tweet must be a scroll-stopping hook.',
+            skool: 'Write an interactive, "Edutainment" community post for a private Skool/Circle group. End with a poll question to drive comments.',
+            blog: 'Write a 500-word SEO Blog Post. Include a "Direct Answer" paragraph at the top for Google AI Overviews, and use H2s.',
+            seo_meta: 'Write an SEO Metadata Pack. Output exactly: 1 SEO Title (under 60 chars), 1 Meta Description (under 160 chars), and 1 URL Slug.',
+            landing_page: 'Write high-converting Landing Page copy. Include: A killer Headline, a Sub-headline, 3 Benefit Bullets, and the Core Offer CTA.',
+            newsletter: 'Write an engaging email newsletter broadcast. Include a compelling subject line and natural integration of the Core Offer.',
+            cold_email: 'Write a 3-part B2B Cold Email Sequence (1: The Hook, 2: The Value Add, 3: The Breakup). Keep them under 100 words each.',
+            sms: 'Write a 3-part SMS Nurture Sequence. Each text MUST be under 160 characters and punchy.',
+            fb_ads: 'Write 3 distinct Facebook Ad copy variations (1: Direct & Punchy, 2: Story-Driven, 3: Agitate the Problem).',
+            youtube: 'Write a YouTube video script. Put bracketed [Visual: keywords here] before every single sentence for the Pictory AI API.',
+            tiktok: 'Write a prompt to paste into InVideo AI for a 60-second video. Include visual constraints and the exact spoken script.',
+            image_prompt: 'Write 3 highly detailed Midjourney/DALL-E image prompts related to the core thought. Specify lighting, style, and aspect ratio.'
+        };
+
+        // 3. THE ROUTER: WHICH AGENTS ARE WE WAKING UP?
+        let assetsToRun = [];
+        if (playbook === 'authority') assetsToRun = ['newsletter', 'linkedin', 'twitter'];
+        else if (playbook === 'leadgen') assetsToRun = ['fb_ads', 'landing_page'];
+        else if (playbook === 'outbound') assetsToRun = ['cold_email', 'sms'];
+        else if (playbook === 'video') assetsToRun = ['youtube', 'tiktok'];
+        else if (playbook === 'custom') assetsToRun = customAssets || [];
+
+        if (assetsToRun.length === 0) return res.status(400).json({ error: 'No assets selected.' });
+
+        // 4. PARALLEL EXECUTION: SPIN UP ONLY WHAT WE NEED
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const promises = assetsToRun.map(async (assetKey) => {
+            const taskInstruction = agentPrompts[assetKey];
+            if (!taskInstruction) return { key: assetKey, text: 'Invalid asset requested.' };
+
+            const fullPrompt = `CORE THOUGHT/DATA: "${coreThought}"\n\nTASK: ${taskInstruction}\n\n${personaLock}`;
+            const result = await model.generateContent(fullPrompt);
+            return { key: assetKey, text: result.response.text() };
+        });
+
+        const results = await Promise.all(promises);
+        
+        // 5. PACKAGE THE OUTPUT FOR MAKE.COM & THE FRONTEND
+        const responseData = {};
+        results.forEach(res => {
+            responseData[res.key] = res.text;
+        });
+
+        res.json(responseData);
+
+    } catch (error) {
+        console.error('OSCE Error:', error);
+        res.status(500).json({ error: 'The Campaign Engine encountered a critical failure.' });
+    }
+});
+
+// =====================================================================
 // START THE SERVER
 // =====================================================================
 app.listen(port, () => {
