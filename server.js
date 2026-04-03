@@ -575,29 +575,19 @@ app.post('/api/cartographer', async (req, res) => {
 });
 
 // =====================================================================
-// APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE)
+// APP NO. 2: EASY APPLY 50 PLUS (THE CAREER BRIDGE) - V2 MULTI-PAGE
 // =====================================================================
-app.post('/api/build-cv', upload.single('image'), async (req, res) => {
+app.post('/api/build-cv', async (req, res) => {
     try {
-        const mode = req.body.mode;
-        let userInput = req.body.text || '';
-        let imagePart = null;
-
-        if (mode === 'photo' && req.file) {
-            imagePart = {
-                inlineData: {
-                    data: req.file.buffer.toString("base64"),
-                    mimeType: req.file.mimetype
-                }
-            };
-        }
+        const { imagesBase64, text } = req.body;
+        let userInput = text || '';
 
         const systemInstruction = `
         You are an elite, empathetic executive career coach and CV writer. Your goal is to empower older professionals (50+) by taking their raw, unstructured career history and transforming it into a modern, ATS-friendly (Applicant Tracking System) CV.
         
-        The user will provide you with either a raw voice transcript, a messy text brain-dump, or text extracted from a photograph of an outdated paper CV. 
+        The user will provide you with either a raw voice transcript, a messy text brain-dump, AND/OR multiple images of their old CVs, qualification certificates, or scribbled notes.
         
-        Your job is to read between the lines, identify their highly valuable transferable skills, and structure their experience using modern professional terminology. 
+        Your job is to read across ALL provided pages, extract their highly valuable transferable skills, decipher their qualifications, and structure their entire career history into a modern CV.
         
         DO NOT patronize the user. Do not invent fake jobs or fake metrics. ONLY use the information provided, but elevate the language.
         
@@ -612,23 +602,47 @@ app.post('/api/build-cv', upload.single('image'), async (req, res) => {
         
         ---
         ## Professional Experience
-        [Structure whatever job history they gave you. If they didn't provide dates, just use the job titles and companies. For each role, write 2-3 strong bullet points using action verbs (e.g., "Managed," "Spearheaded," "Optimized").]
+        [Structure whatever job history they gave you chronologically. If they didn't provide dates, just use the job titles and companies. For each role, write 2-3 strong bullet points using action verbs (e.g., "Managed," "Spearheaded," "Optimized").]
+        
+        ---
+        ## Education & Certifications
+        [List all degrees, qualifications, and certificates you deciphered from the uploaded images or text.]
         
         ---
         ## 💡 Career Coach Note
         [Add a final, short, encouraging note directly addressing the user. Tell them 1 specific strength you noticed in their background and give them a quick boost of confidence for their job hunt.]
         `;
 
-        let contentArray = [];
-        if (userInput) contentArray.push(userInput);
-        if (imagePart) contentArray.push(imagePart);
-        contentArray.push("Please analyze this raw career history and structure it into a modern CV according to your system instructions.");
+        let promptPayload = [
+            "Please analyze this raw career history across all provided pages and structure it into a modern CV according to your system instructions."
+        ];
+
+        if (userInput) {
+            promptPayload.push(`\nUser Voice/Text Input: "${userInput}"`);
+        }
+
+        // Process the array of images
+        if (imagesBase64 && Array.isArray(imagesBase64) && imagesBase64.length > 0) {
+            imagesBase64.forEach((base64Str, index) => {
+                const base64Data = base64Str.includes(',') ? base64Str.split(',')[1] : base64Str;
+                const mimeMatch = base64Str.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
+                const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+
+                promptPayload.push(`\n--- DOCUMENT PAGE ${index + 1} ---`);
+                promptPayload.push({
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType
+                    }
+                });
+            });
+        }
 
         const model = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
             systemInstruction: systemInstruction 
         });
-        const result = await model.generateContent(contentArray);
+        const result = await model.generateContent(promptPayload);
 
         res.json({ feedback: result.response.text() });
 
