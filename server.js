@@ -575,7 +575,7 @@ app.post('/api/cartographer', async (req, res) => {
 });
 
 // =====================================================================
-// APP NO. 1E: THE SOCRATIC DRILL FORGE (TOPIC-BASED EXAM BUILDER) - V2
+// APP NO. 1E: THE SOCRATIC DRILL FORGE (TOPIC-BASED EXAM BUILDER) - V4
 // =====================================================================
 app.post('/api/drill-forge', async (req, res) => {
     try {
@@ -590,27 +590,27 @@ app.post('/api/drill-forge', async (req, res) => {
         if (level === 'GCSE') {
             switch(subject) {
                 case 'Mathematics':
-                    markStructure = "Q1: 1-mark (foundational skill). Q2: 2-mark (method + answer). Q3: 3-mark (multi-step problem). Q4: 5-mark (complex application/word problem). Total: 11 marks.";
+                    markStructure = "Q1: 1-mark (foundational). Q2: 2-mark (method + answer). Q3: 3-mark (multi-step problem). Q4: 5-mark (complex application/word problem). Total: 11 marks.";
                     break;
                 case 'Biology':
                 case 'Chemistry':
                 case 'Physics':
-                    markStructure = "Q1: 1-mark (factual recall/multiple choice). Q2: 2-mark (describe/explain). Q3: 3-mark (application/calculation). Q4: 6-mark (extended 'Level of Response' evaluating a process or data). Total: 12 marks.";
+                    markStructure = "Q1: 1-mark (factual recall). Q2: 2-mark (describe/explain). Q3: 3-mark (application/calculation). Q4: 6-mark (extended 'Level of Response'). Total: 12 marks.";
                     break;
                 case 'English Literature':
-                    markStructure = "Q1: 1-mark (identify a specific technique/quote). Q2: 4-mark (analyze language/structure in a short paragraph). Q3: 8-mark (mini-essay paragraph exploring theme/context). Total: 13 marks.";
+                    markStructure = "Q1: 1-mark (identify technique/quote). Q2: 4-mark (analyze language/structure). Q3: 8-mark (mini-essay paragraph exploring theme). Total: 13 marks.";
                     break;
                 case 'History':
-                    markStructure = "Q1: 4-mark (describe two features or infer from a source). Q2: 8-mark (explain why an event happened or its consequences). Total: 12 marks.";
+                    markStructure = "Q1: 4-mark (describe features or infer). Q2: 8-mark (explain why an event happened). Total: 12 marks.";
                     break;
                 case 'Geography':
-                    markStructure = "Q1: 1-mark (data skill/recall). Q2: 2-mark (describe a pattern). Q3: 4-mark (explain a process). Q4: 8-mark (evaluate/assess a strategy or impact). Total: 15 marks.";
+                    markStructure = "Q1: 1-mark (data skill). Q2: 2-mark (describe a pattern). Q3: 4-mark (explain a process). Q4: 8-mark (evaluate/assess a strategy). Total: 15 marks.";
                     break;
                 default:
                     markStructure = "Q1: 1-mark. Q2: 2-mark. Q3: 4-mark. Q4: 6-mark.";
             }
         } else if (level === '11+') {
-            markStructure = "Q1: 1-mark (standard speed question). Q2: 2-mark (applied logic/calculation). Q3: 3-mark (multi-step reasoning/discriminator question). Total: 6 marks.";
+            markStructure = "Q1: 1-mark (standard speed). Q2: 2-mark (applied logic/calculation). Q3: 3-mark (discriminator question). Total: 6 marks.";
         }
 
         const systemInstruction = `
@@ -621,16 +621,19 @@ app.post('/api/drill-forge', async (req, res) => {
         1. Emulate the exact style, wording, and difficulty of official UK exam boards (Edexcel, AQA, OCR, ISEB).
         2. You MUST use this exact question structure and mark allocation: ${markStructure}
         3. Include the marks available in brackets at the end of each question, e.g., [3 marks].
-        4. Use LaTeX exclusively for any mathematical formulas or scientific equations.
+        
+        CRITICAL FORMATTING MANDATES (MATH & DIAGRAMS):
+        - LATEX MATH: You MUST use LaTeX for ALL mathematical formulas, fractions, and angles. You MUST wrap inline math strictly in single $ signs (e.g., $x^2 + y^2 = r^2$) and display math in double $$ signs. NEVER, under any circumstances, use parenthesis like \\( \\) or \\[ \\]. Use $ exclusively.
+        - VISUAL DIAGRAMS (ASCII): If a question requires a visual diagram (e.g., Nets & Cubes, Spatial Reasoning, or Circle Theorems), DO NOT attempt to write HTML or SVG code. Instead, draw the diagram beautifully using standard text characters (ASCII art), using dashes, lines, and standard keyboard symbols.
 
         Format your response EXACTLY like this in Markdown:
         
         ## 📝 The ${level} ${subject} Drill: ${topic}
         *You have 15 minutes to complete this drill. Show all your working.*
         
-        **Q1.** [Write the question] [X marks]
+        **Q1.** [Write the question. Insert ASCII Diagram here if required] [X marks]
         
-        **Q2.** [Write the question] [X marks]
+        **Q2.** [Write the question. Insert ASCII Diagram here if required] [X marks]
         
         [Continue for all required questions based on the mark structure...]
         
@@ -643,7 +646,7 @@ app.post('/api/drill-forge', async (req, res) => {
         **Q1:** * [Give the exact answer/key point] (1 mark)
         * [Give the working/method mark if applicable] (1 mark)
         
-        [Continue breakdown for all questions. For 6, 8, or 10 mark questions, briefly outline what constitutes a 'Top Band' response vs a 'Mid Band' response.]
+        [Continue breakdown for all questions. For 6+ mark questions, outline 'Top Band' vs 'Mid Band'.]
         
         **💡 Examiner's Socratic Note:** [Give one piece of advice on the most common trap students fall into for this specific topic.]
         </details>
